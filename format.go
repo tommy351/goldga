@@ -1,4 +1,4 @@
-package golden
+package goldga
 
 import (
 	"bufio"

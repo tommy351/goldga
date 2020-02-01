@@ -1,4 +1,4 @@
-package golden
+package goldga
 
 import (
 	"bytes"
@@ -13,13 +13,6 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/types"
 	"github.com/spf13/afero"
-)
-
-// Default configs
-const (
-	DefaultFixtureDir     = "testdata"
-	DefaultFileNamePrefix = ""
-	DefaultFileNameSuffix = ".golden"
 )
 
 // nolint: gochecknoglobals

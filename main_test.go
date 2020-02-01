@@ -1,4 +1,4 @@
-package golden
+package goldga
 
 import (
 	"fmt"
@@ -25,5 +25,5 @@ func Test(t *testing.T) {
 	}
 
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "golden", specReporters)
+	RunSpecsWithDefaultAndCustomReporters(t, "goldga", specReporters)
 }

@@ -1,4 +1,4 @@
-module github.com/tommy351/gomega-golden
+module github.com/tommy351/goldga
 
 go 1.13
 

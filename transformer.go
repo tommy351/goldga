@@ -1,4 +1,4 @@
-package golden
+package goldga
 
 // DefaultTransformer is the default transformer.
 // nolint: gochecknoglobals
