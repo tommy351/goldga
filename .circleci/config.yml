@@ -1,0 +1,41 @@
+version: 2.1
+
+commands:
+  go_get:
+    steps:
+      - restore_cache:
+          key: go-mod-{{ checksum "go.sum" }}
+      - run: go get ./...
+      - save_cache:
+          paths:
+            - /go/pkg/mod
+          key: go-mod-{{ checksum "go.sum" }}
+
+jobs:
+  lint:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - go_get
+      - run:
+          name: Install golangci-lint
+          command: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.23.1
+      - run: ./bin/golangci-lint run
+  test:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - go_get
+      - run: hack/run-test.sh
+      - store_test_results:
+          path: reports/junit
+      - run: bash <(curl -s https://codecov.io/bash)
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - lint
+      - test
