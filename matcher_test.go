@@ -62,7 +62,6 @@ var _ = Describe("Matcher", func() {
 
 	genCorrectGoldenFile := func() *goldenFile {
 		return &goldenFile{
-			Version: goldenFileVersion,
 			Snapshots: snapshotMap{
 				getGinkgoTestName(): getDefaultDumpConfig().Sdump(actual),
 			},
@@ -124,7 +123,6 @@ var _ = Describe("Matcher", func() {
 		When("golden file not match", func() {
 			BeforeEach(func() {
 				writeFile(&goldenFile{
-					Version: goldenFileVersion,
 					Snapshots: snapshotMap{
 						getGinkgoTestName(): "foo",
 					},
