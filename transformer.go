@@ -2,7 +2,7 @@ package goldga
 
 // DefaultTransformer is the default transformer.
 // nolint: gochecknoglobals
-var DefaultTransformer = &NopTransformer{}
+var DefaultTransformer Transformer = &NopTransformer{}
 
 // Transformer transforms input data.
 type Transformer interface {

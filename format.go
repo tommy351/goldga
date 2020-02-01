@@ -18,6 +18,13 @@ type goldenFile struct {
 	Snapshots snapshotMap `toml:"snapshots"`
 }
 
+func newGoldenFile() *goldenFile {
+	return &goldenFile{
+		Version:   goldenFileVersion,
+		Snapshots: snapshotMap{},
+	}
+}
+
 func (g *goldenFile) sortSnapshotKeys() []string {
 	keys := make([]string, 0, len(g.Snapshots))
 
@@ -31,16 +38,13 @@ func (g *goldenFile) sortSnapshotKeys() []string {
 }
 
 func readGoldenFile(r io.Reader) (*goldenFile, error) {
-	file := goldenFile{
-		Version:   goldenFileVersion,
-		Snapshots: snapshotMap{},
-	}
+	file := newGoldenFile()
 
 	if _, err := toml.DecodeReader(r, &file); err != nil {
 		return nil, err
 	}
 
-	return &file, nil
+	return file, nil
 }
 
 func writeGoldenFile(w io.Writer, file *goldenFile) error {
@@ -63,7 +67,7 @@ func writeGoldenFile(w io.Writer, file *goldenFile) error {
 	for _, k := range file.sortSnapshotKeys() {
 		v := file.Snapshots[k]
 
-		if _, err := fmt.Fprintf(bw, "%q = '''\n%s'''", k, v); err != nil {
+		if _, err := fmt.Fprintf(bw, "%q = '''\n%s'''\n", k, v); err != nil {
 			return err
 		}
 	}

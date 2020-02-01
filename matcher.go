@@ -92,18 +92,18 @@ func (m *Matcher) Match(actual interface{}) (bool, error) {
 	actualContent, err := m.getActualContent(actual)
 
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get actual content: %w", err)
 	}
 
 	expected, err := m.getExpectedContent()
 
 	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return false, err
+		if !errors.Is(err, afero.ErrFileNotFound) {
+			return false, fmt.Errorf("failed to get expected content: %w", err)
 		}
 
 		if err := m.writeFile(actualContent); err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to write file: %w", err)
 		}
 
 		return true, nil
@@ -112,29 +112,45 @@ func (m *Matcher) Match(actual interface{}) (bool, error) {
 	return expected == actualContent, nil
 }
 
+func (m *Matcher) readGoldenFile() (*goldenFile, error) {
+	file, err := m.fs.Open(m.Path)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+
+	defer file.Close()
+
+	return readGoldenFile(file)
+}
+
 func (m *Matcher) writeFile(actualContent string) error {
 	if err := m.fs.MkdirAll(filepath.Dir(m.Path), os.ModePerm); err != nil {
 		return err
 	}
 
-	file, err := m.fs.OpenFile(m.Path, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	gf, err := m.readGoldenFile()
 
 	if err != nil {
-		return err
-	}
+		if !errors.Is(err, afero.ErrFileNotFound) {
+			return fmt.Errorf("failed to read golden file: %w", err)
+		}
 
-	defer file.Close()
-
-	gf, err := readGoldenFile(file)
-
-	if err != nil {
-		return err
+		gf = newGoldenFile()
 	}
 
 	gf.Snapshots[m.Name] = actualContent
 
+	file, err := m.fs.Create(m.Path)
+
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+
+	defer file.Close()
+
 	if err := writeGoldenFile(file, gf); err != nil {
-		return err
+		return fmt.Errorf("failed to write golden file: %w", err)
 	}
 
 	return nil
@@ -161,21 +177,13 @@ func (m *Matcher) getMessage(actual interface{}, message string) string {
 
 func (m *Matcher) getExpectedContent() (string, error) {
 	if m.UpdateFile {
-		return "", os.ErrNotExist
+		return "", afero.ErrFileNotFound
 	}
 
-	file, err := m.fs.Open(m.Path)
+	gf, err := m.readGoldenFile()
 
 	if err != nil {
-		return "", err
-	}
-
-	defer file.Close()
-
-	gf, err := readGoldenFile(file)
-
-	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read golden file: %w", err)
 	}
 
 	content, ok := gf.Snapshots[m.Name]
@@ -184,7 +192,7 @@ func (m *Matcher) getExpectedContent() (string, error) {
 		return content, nil
 	}
 
-	return "", os.ErrNotExist
+	return "", afero.ErrFileNotFound
 }
 
 func (m *Matcher) getActualContent(actual interface{}) (string, error) {

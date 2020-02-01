@@ -11,8 +11,8 @@ import (
 
 // DefaultSerializer is the default serializer.
 // nolint: gochecknoglobals
-var DefaultSerializer = &DumpSerializer{
-	ConfigState: spew.NewDefaultConfig(),
+var DefaultSerializer Serializer = &DumpSerializer{
+	Config: getDefaultDumpConfig(),
 }
 
 // Serializer serializes input and writes output to a writer.
@@ -22,13 +22,21 @@ type Serializer interface {
 
 // DumpSerializer serializes data using [go-spew](https://github.com/davecgh/go-spew).
 type DumpSerializer struct {
-	*spew.ConfigState
+	Config *spew.ConfigState
 }
 
 // Serialize implements Serializer
 func (d *DumpSerializer) Serialize(w io.Writer, input interface{}) error {
-	d.ConfigState.Fdump(w, input)
+	d.Config.Fdump(w, input)
 	return nil
+}
+
+func getDefaultDumpConfig() *spew.ConfigState {
+	conf := spew.NewDefaultConfig()
+	conf.SortKeys = true
+	conf.DisableCapacities = true
+
+	return conf
 }
 
 // YAMLSerializer serializes data into YAML format.

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
@@ -64,7 +63,7 @@ var _ = Describe("Matcher", func() {
 		return &goldenFile{
 			Version: goldenFileVersion,
 			Snapshots: snapshotMap{
-				getGinkgoTestName(): spew.Sdump(actual),
+				getGinkgoTestName(): getDefaultDumpConfig().Sdump(actual),
 			},
 		}
 	}
