@@ -2,6 +2,7 @@ package goldga
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -85,6 +86,14 @@ var _ = Describe("Matcher", func() {
 
 		It("should not return the error", func() {
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should generate failure message", func() {
+			Expect(matcher.FailureMessage(actual)).To(HavePrefix(fmt.Sprintf("Expected to match the golden file %q", matcher.Path)))
+		})
+
+		It("should generate negated failure message", func() {
+			Expect(matcher.NegatedFailureMessage(actual)).To(HavePrefix(fmt.Sprintf("Expected not to match the golden file %q", matcher.Path)))
 		})
 	}
 
