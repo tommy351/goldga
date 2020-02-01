@@ -9,6 +9,8 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+const goldenFileVersion = 1
+
 type snapshotMap map[string]string
 
 type goldenFile struct {
@@ -30,7 +32,7 @@ func (g *goldenFile) sortSnapshotKeys() []string {
 
 func readGoldenFile(r io.Reader) (*goldenFile, error) {
 	file := goldenFile{
-		Version:   1,
+		Version:   goldenFileVersion,
 		Snapshots: snapshotMap{},
 	}
 

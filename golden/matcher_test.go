@@ -2,6 +2,7 @@ package golden
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	. "github.com/onsi/ginkgo"
@@ -14,6 +15,8 @@ var _ = Describe("Matcher", func() {
 		fs      afero.Fs
 		matcher *Matcher
 		actual  interface{}
+		success bool
+		err     error
 	)
 
 	BeforeEach(func() {
@@ -28,11 +31,11 @@ var _ = Describe("Matcher", func() {
 	})
 
 	JustBeforeEach(func() {
-		Expect(actual).To(matcher)
+		success, err = matcher.Match(actual)
 	})
 
-	getGoldenFile := func() *goldenFile {
-		file, err := fs.Open(matcher.getPath())
+	getFile := func() *goldenFile {
+		file, err := fs.Open(matcher.Path)
 		Expect(err).NotTo(HaveOccurred())
 		defer file.Close()
 
@@ -42,17 +45,94 @@ var _ = Describe("Matcher", func() {
 		return gf
 	}
 
+	resetFileTime := func(path string) {
+		zero := time.Unix(0, 0)
+		Expect(fs.Chtimes(path, zero, zero)).To(Succeed())
+	}
+
+	writeFile := func(gf *goldenFile) {
+		file, err := fs.Create(matcher.Path)
+		Expect(err).NotTo(HaveOccurred())
+
+		defer resetFileTime(matcher.Path)
+		defer file.Close()
+
+		Expect(writeGoldenFile(file, gf)).To(Succeed())
+	}
+
+	genCorrectGoldenFile := func() *goldenFile {
+		return &goldenFile{
+			Version: goldenFileVersion,
+			Snapshots: snapshotMap{
+				getGinkgoTestName(): spew.Sdump(actual),
+			},
+		}
+	}
+
+	testSucceed := func() {
+		It("should succeed", func() {
+			Expect(success).To(BeTrue())
+		})
+
+		It("should not return error", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	}
+
+	testFailed := func() {
+		It("should fail", func() {
+			Expect(success).To(BeFalse())
+		})
+
+		It("should not return the error", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	}
+
+	testFileUnchanged := func() {
+		It("should not update the golden file", func() {
+			stat, err := fs.Stat(matcher.Path)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stat.ModTime()).To(Equal(time.Unix(0, 0)))
+		})
+	}
+
 	When("golden file exists", func() {
+		When("UpdateFile = true", func() {
+			BeforeEach(func() {
+				matcher.UpdateFile = true
+			})
+		})
+
+		When("golden file match", func() {
+			BeforeEach(func() {
+				writeFile(genCorrectGoldenFile())
+			})
+
+			testSucceed()
+			testFileUnchanged()
+		})
+
+		When("golden file not match", func() {
+			BeforeEach(func() {
+				writeFile(&goldenFile{
+					Version: goldenFileVersion,
+					Snapshots: snapshotMap{
+						getGinkgoTestName(): "foo",
+					},
+				})
+			})
+
+			testFailed()
+			testFileUnchanged()
+		})
 	})
 
 	When("golden file does not exist", func() {
+		testSucceed()
+
 		It("should write a new golden file", func() {
-			Expect(getGoldenFile()).To(Equal(&goldenFile{
-				Version: 1,
-				Snapshots: snapshotMap{
-					getGinkgoTestName(): spew.Sdump(actual),
-				},
-			}))
+			Expect(getFile()).To(Equal(genCorrectGoldenFile()))
 		})
 
 		When("Serializer is set", func() {
@@ -60,8 +140,10 @@ var _ = Describe("Matcher", func() {
 				matcher.Serializer = &JSONSerializer{}
 			})
 
+			testSucceed()
+
 			It("should serialize into JSON format", func() {
-				file := getGoldenFile()
+				file := getFile()
 				expected, err := json.Marshal(actual)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(file.Snapshots).To(HaveKeyWithValue(getGinkgoTestName(), MatchJSON(expected)))

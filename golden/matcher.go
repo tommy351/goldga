@@ -29,7 +29,7 @@ var defaultFs = afero.NewCacheOnReadFs(
 	time.Minute,
 )
 
-func getGinkgoFileName() string {
+func getGinkgoPath() string {
 	desc := ginkgo.CurrentGinkgoTestDescription()
 	path := desc.FileName
 
@@ -44,7 +44,7 @@ func getGinkgoFileName() string {
 		name = strings.TrimSuffix(name, "_test")
 	}
 
-	return name
+	return filepath.Join("testdata", name+".golden")
 }
 
 func getGinkgoTestName() string {
@@ -70,16 +70,13 @@ func getColor() bool {
 // Match succeeds if actual matches the golden file.
 func Match() *Matcher {
 	return &Matcher{
-		FixtureDir:     DefaultFixtureDir,
-		FileNamePrefix: DefaultFileNamePrefix,
-		FileNameSuffix: DefaultFileNameSuffix,
-		FileName:       getGinkgoFileName(),
-		TestName:       getGinkgoTestName(),
-		Serializer:     DefaultSerializer,
-		Transformer:    DefaultTransformer,
-		UpdateFile:     getUpdateFile(),
-		Color:          getColor(),
-		fs:             defaultFs,
+		Path:        getGinkgoPath(),
+		Name:        getGinkgoTestName(),
+		Serializer:  DefaultSerializer,
+		Transformer: DefaultTransformer,
+		UpdateFile:  getUpdateFile(),
+		Color:       getColor(),
+		fs:          defaultFs,
 	}
 }
 
@@ -87,36 +84,14 @@ var _ types.GomegaMatcher = (*Matcher)(nil)
 
 // Matcher implements GomegaMatcher.
 type Matcher struct {
-	// Path of the fixture directory.
-	FixtureDir string
-
-	// Name of the golden file.
-	FileName string
-
-	// Prefix of the file name.
-	FileNamePrefix string
-
-	// Suffix of the file name.
-	FileNameSuffix string
-
-	// Name of the test.
-	TestName string
-
-	Serializer Serializer
-
+	Path        string
+	Name        string
+	Serializer  Serializer
 	Transformer Transformer
-
-	// Display colored output.
-	Color bool
-
-	// Force update the golden file.
-	UpdateFile bool
+	Color       bool
+	UpdateFile  bool
 
 	fs afero.Fs
-}
-
-func (m *Matcher) getPath() string {
-	return filepath.Join(m.FixtureDir, m.FileNamePrefix+m.FileName+m.FileNameSuffix)
 }
 
 // Match implements GomegaMatcher.
@@ -145,13 +120,11 @@ func (m *Matcher) Match(actual interface{}) (bool, error) {
 }
 
 func (m *Matcher) writeFile(actualContent string) error {
-	path := m.getPath()
-
-	if err := m.fs.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+	if err := m.fs.MkdirAll(filepath.Dir(m.Path), os.ModePerm); err != nil {
 		return err
 	}
 
-	file, err := m.fs.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	file, err := m.fs.OpenFile(m.Path, os.O_RDWR|os.O_CREATE, os.ModePerm)
 
 	if err != nil {
 		return err
@@ -165,7 +138,7 @@ func (m *Matcher) writeFile(actualContent string) error {
 		return err
 	}
 
-	gf.Snapshots[m.TestName] = actualContent
+	gf.Snapshots[m.Name] = actualContent
 
 	if err := writeGoldenFile(file, gf); err != nil {
 		return err
@@ -189,7 +162,7 @@ func (m *Matcher) getMessage(actual interface{}, message string) string {
 
 	return fmt.Sprintf("Expected %s match the golden file %q\n%s",
 		message,
-		m.getPath(),
+		m.Path,
 		diffString(m.Color, expectedContent, actualContent))
 }
 
@@ -198,7 +171,7 @@ func (m *Matcher) getExpectedContent() (string, error) {
 		return "", os.ErrNotExist
 	}
 
-	file, err := m.fs.Open(m.getPath())
+	file, err := m.fs.Open(m.Path)
 
 	if err != nil {
 		return "", err
@@ -212,7 +185,7 @@ func (m *Matcher) getExpectedContent() (string, error) {
 		return "", err
 	}
 
-	content, ok := gf.Snapshots[m.TestName]
+	content, ok := gf.Snapshots[m.Name]
 
 	if ok {
 		return content, nil
