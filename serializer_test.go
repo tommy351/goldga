@@ -23,6 +23,16 @@ func testSerializer(s Serializer) []byte {
 	return buf.Bytes()
 }
 
+var _ = Describe("DumpSerializer", func() {
+	It("works", func() {
+		serializer := &DumpSerializer{
+			Config: newDefaultDumpConfig(),
+		}
+		expected := newDefaultDumpConfig().Sdump(serializerTestData)
+		Expect(testSerializer(serializer)).To(Equal([]byte(expected)))
+	})
+})
+
 var _ = Describe("YAMLSerializer", func() {
 	It("works", func() {
 		expected, err := yaml.Marshal(serializerTestData)

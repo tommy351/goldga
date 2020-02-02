@@ -1,72 +1,45 @@
 package goldga
 
 import (
-	"encoding/json"
-	"fmt"
-	"time"
+	"bytes"
+	"errors"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 	"github.com/spf13/afero"
 )
 
 var _ = Describe("Matcher", func() {
 	var (
-		fs      afero.Fs
-		matcher *Matcher
-		actual  interface{}
-		success bool
-		err     error
+		matcher  *Matcher
+		mockCtrl *gomock.Controller
+		storage  *MockStorage
+		actual   interface{}
+		success  bool
+		err      error
 	)
 
 	BeforeEach(func() {
-		fs = afero.NewMemMapFs()
 		matcher = Match()
-		matcher.fs = fs
-		actual = []interface{}{
-			true,
-			"str",
-			123,
+		mockCtrl = gomock.NewController(GinkgoT())
+		storage = NewMockStorage(mockCtrl)
+		matcher.Storage = storage
+		actual = map[string]interface{}{
+			"a": "str",
+			"b": true,
+			"c": 3.14,
 		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 
 	JustBeforeEach(func() {
 		success, err = matcher.Match(actual)
 	})
-
-	getFile := func() *goldenFile {
-		file, err := fs.Open(matcher.Path)
-		Expect(err).NotTo(HaveOccurred())
-		defer file.Close()
-
-		gf, err := readGoldenFile(file)
-		Expect(err).NotTo(HaveOccurred())
-
-		return gf
-	}
-
-	resetFileTime := func(path string) {
-		zero := time.Unix(0, 0)
-		Expect(fs.Chtimes(path, zero, zero)).To(Succeed())
-	}
-
-	writeFile := func(gf *goldenFile) {
-		file, err := fs.Create(matcher.Path)
-		Expect(err).NotTo(HaveOccurred())
-
-		defer resetFileTime(matcher.Path)
-		defer file.Close()
-
-		Expect(writeGoldenFile(file, gf)).To(Succeed())
-	}
-
-	genCorrectGoldenFile := func() *goldenFile {
-		return &goldenFile{
-			Snapshots: snapshotMap{
-				getGinkgoTestName(): getDefaultDumpConfig().Sdump(actual),
-			},
-		}
-	}
 
 	testSucceed := func() {
 		It("should succeed", func() {
@@ -78,29 +51,47 @@ var _ = Describe("Matcher", func() {
 		})
 	}
 
-	testFailed := func() {
+	testFail := func() {
 		It("should fail", func() {
 			Expect(success).To(BeFalse())
 		})
 
-		It("should not return the error", func() {
+		It("should not return error", func() {
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should generate failure message", func() {
-			Expect(matcher.FailureMessage(actual)).To(HavePrefix(fmt.Sprintf("Expected to match the golden file %q", matcher.Path)))
-		})
-
-		It("should generate negated failure message", func() {
-			Expect(matcher.NegatedFailureMessage(actual)).To(HavePrefix(fmt.Sprintf("Expected not to match the golden file %q", matcher.Path)))
 		})
 	}
 
-	testFileUnchanged := func() {
-		It("should not update the golden file", func() {
-			stat, err := fs.Stat(matcher.Path)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(stat.ModTime()).To(Equal(time.Unix(0, 0)))
+	testError := func(expected types.GomegaMatcher) {
+		It("should fail", func() {
+			Expect(success).To(BeFalse())
+		})
+
+		It("should return error", func() {
+			Expect(err).To(expected)
+		})
+	}
+
+	getFileContent := func() []byte {
+		var buf bytes.Buffer
+		Expect(matcher.Serializer.Serialize(&buf, actual)).To(Succeed())
+		return buf.Bytes()
+	}
+
+	testUpdateFile := func() {
+		When("write success", func() {
+			BeforeEach(func() {
+				storage.EXPECT().Write(getFileContent()).Return(nil)
+			})
+
+			testSucceed()
+		})
+
+		When("write failed", func() {
+			BeforeEach(func() {
+				storage.EXPECT().Write(getFileContent()).Return(errors.New("error"))
+			})
+
+			testError(HaveOccurred())
 		})
 	}
 
@@ -109,51 +100,54 @@ var _ = Describe("Matcher", func() {
 			BeforeEach(func() {
 				matcher.UpdateFile = true
 			})
+
+			testUpdateFile()
 		})
 
-		When("golden file match", func() {
+		When("match", func() {
 			BeforeEach(func() {
-				writeFile(genCorrectGoldenFile())
+				storage.EXPECT().Read().Return(getFileContent(), nil)
 			})
 
 			testSucceed()
-			testFileUnchanged()
 		})
 
-		When("golden file not match", func() {
+		When("not match", func() {
 			BeforeEach(func() {
-				writeFile(&goldenFile{
-					Snapshots: snapshotMap{
-						getGinkgoTestName(): "foo",
-					},
-				})
+				storage.EXPECT().Read().Return([]byte{}, nil)
 			})
 
-			testFailed()
-			testFileUnchanged()
+			testFail()
+
+			Context("failure message", func() {
+				BeforeEach(func() {
+					storage.EXPECT().Read().Return([]byte{}, nil)
+				})
+
+				It("positive", func() {
+					Expect(matcher.FailureMessage(actual)).To(HavePrefix("Expected to match the golden file"))
+				})
+
+				It("negative", func() {
+					Expect(matcher.NegatedFailureMessage(actual)).To(HavePrefix("Expected not to match the golden file"))
+				})
+			})
 		})
 	})
 
 	When("golden file does not exist", func() {
-		testSucceed()
-
-		It("should write a new golden file", func() {
-			Expect(getFile()).To(Equal(genCorrectGoldenFile()))
+		BeforeEach(func() {
+			storage.EXPECT().Read().Return(nil, afero.ErrFileNotFound)
 		})
 
-		When("Serializer is set", func() {
-			BeforeEach(func() {
-				matcher.Serializer = &JSONSerializer{}
-			})
+		testUpdateFile()
+	})
 
-			testSucceed()
-
-			It("should serialize into JSON format", func() {
-				file := getFile()
-				expected, err := json.Marshal(actual)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(file.Snapshots).To(HaveKeyWithValue(getGinkgoTestName(), MatchJSON(expected)))
-			})
+	When("failed to read golden file", func() {
+		BeforeEach(func() {
+			storage.EXPECT().Read().Return(nil, errors.New("error"))
 		})
+
+		testError(HaveOccurred())
 	})
 })

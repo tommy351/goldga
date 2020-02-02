@@ -1,18 +1,18 @@
 package goldga
 
-// DefaultTransformer is the default transformer.
 // nolint: gochecknoglobals
-var DefaultTransformer Transformer = &NopTransformer{}
+var (
+	DefaultTransformer Transformer = &NopTransformer{}
+)
 
-// Transformer transforms input data.
 type Transformer interface {
 	Transform(input interface{}) (interface{}, error)
 }
 
-// NopTransformer doesn't transforms data.
+var _ Transformer = (*NopTransformer)(nil)
+
 type NopTransformer struct{}
 
-// Transform implements Transformer.
-func (n *NopTransformer) Transform(input interface{}) (interface{}, error) {
+func (NopTransformer) Transform(input interface{}) (interface{}, error) {
 	return input, nil
 }
