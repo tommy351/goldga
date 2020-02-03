@@ -3,6 +3,7 @@
 set -euo pipefail
 
 export JUNIT_OUTPUT="${PWD}/reports/junit"
+export PATH="$(go env GOPATH)/bin;$PATH"
 
 GO111MODULE="on" go get github.com/onsi/ginkgo/ginkgo
 ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress $@
