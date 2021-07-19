@@ -16,6 +16,15 @@
  }
 }
 '''
+"Examples multiple gold files in the same test (first gold file)" = '''
+(string) (len=3) "foo"
+'''
+"Examples multiple gold files in the same test (second gold file)" = '''
+(string) (len=3) "bar"
+'''
+"Examples multiple gold files in the same test (third gold file)" = '''
+(string) (len=6) "foobar"
+'''
 "Examples string" = '''
 (string) (len=3) "abc"
 '''

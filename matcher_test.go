@@ -151,3 +151,13 @@ var _ = Describe("Matcher", func() {
 		testError(HaveOccurred())
 	})
 })
+
+var _ = Describe("Options", func() {
+	Describe("WithDescription", func() {
+		It("should append a description to the test name, allowing multiple gold files per test", func() {
+			Expect("foo").To(Match(WithDescription("First Gold File")))
+			Expect("bar").To(Match(WithDescription("Second Gold File")))
+			Expect("foobar").To(Match(WithDescription("Third Gold File")))
+		})
+	})
+})

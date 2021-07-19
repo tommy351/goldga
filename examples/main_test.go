@@ -31,4 +31,10 @@ var _ = Describe("Examples", func() {
 			"e": []string{"a", "b", "c"},
 		}).To(goldga.Match())
 	})
+
+	It("multiple gold files in the same test", func() {
+		Expect("foo").To(goldga.Match(goldga.WithDescription("first gold file")))
+		Expect("bar").To(goldga.Match(goldga.WithDescription("second gold file")))
+		Expect("foobar").To(goldga.Match(goldga.WithDescription("third gold file")))
+	})
 })
