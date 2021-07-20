@@ -35,15 +35,24 @@ type SingleStorage struct {
 }
 
 func (s *SingleStorage) Read() ([]byte, error) {
-	return afero.ReadFile(s.Fs, s.Path)
+	data, err := afero.ReadFile(s.Fs, s.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	return data, nil
 }
 
 func (s *SingleStorage) Write(data []byte) error {
 	if err := s.Fs.MkdirAll(filepath.Dir(s.Path), os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	return afero.WriteFile(s.Fs, s.Path, data, os.ModePerm)
+	if err := afero.WriteFile(s.Fs, s.Path, data, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
 }
 
 type suiteData struct {
@@ -78,9 +87,8 @@ type SuiteStorage struct {
 
 func (s *SuiteStorage) getSuiteData() (*suiteData, error) {
 	exists, err := afero.Exists(s.Fs, s.Path)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to check file exist: %w", err)
 	}
 
 	if !exists {
@@ -88,9 +96,8 @@ func (s *SuiteStorage) getSuiteData() (*suiteData, error) {
 	}
 
 	file, err := s.Fs.Open(s.Path)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 
 	defer file.Close()
@@ -98,7 +105,7 @@ func (s *SuiteStorage) getSuiteData() (*suiteData, error) {
 	data := newSuiteData()
 
 	if _, err := toml.DecodeReader(file, &data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("toml decode error: %w", err)
 	}
 
 	return data, nil
@@ -106,7 +113,6 @@ func (s *SuiteStorage) getSuiteData() (*suiteData, error) {
 
 func (s *SuiteStorage) Read() ([]byte, error) {
 	data, err := s.getSuiteData()
-
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +126,6 @@ func (s *SuiteStorage) Read() ([]byte, error) {
 
 func (s *SuiteStorage) Write(input []byte) error {
 	data, err := s.getSuiteData()
-
 	if err != nil {
 		if !errors.Is(err, afero.ErrFileNotFound) {
 			return err
@@ -132,13 +137,12 @@ func (s *SuiteStorage) Write(input []byte) error {
 	data.Snapshots[s.Name] = string(input)
 
 	if err := s.Fs.MkdirAll(filepath.Dir(s.Path), os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
 	file, err := s.Fs.Create(s.Path)
-
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file: %w", err)
 	}
 
 	defer file.Close()
@@ -152,7 +156,7 @@ func (s *SuiteStorage) Write(input []byte) error {
 	// Print header
 	for _, line := range lines {
 		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
+			return fmt.Errorf("header write error: %w", err)
 		}
 	}
 
@@ -161,9 +165,13 @@ func (s *SuiteStorage) Write(input []byte) error {
 		v := data.Snapshots[k]
 
 		if _, err := fmt.Fprintf(w, "%q = '''\n%s'''\n", k, v); err != nil {
-			return err
+			return fmt.Errorf("snapshot write error: %w", err)
 		}
 	}
 
-	return w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("flush error: %w", err)
+	}
+
+	return nil
 }

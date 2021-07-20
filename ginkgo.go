@@ -19,7 +19,7 @@ func getGinkgoPath() string {
 		panic("current file name is empty")
 	}
 
-	name := filepath.Base(desc.FileName)
+	name := filepath.Base(path)
 
 	if ext := filepath.Ext(name); ext != "" {
 		name = strings.TrimSuffix(name, ext)

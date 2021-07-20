@@ -20,6 +20,7 @@ var serializerTestData = map[string]interface{}{
 func testSerializer(s Serializer) []byte {
 	var buf bytes.Buffer
 	Expect(s.Serialize(&buf, serializerTestData)).To(Succeed())
+
 	return buf.Bytes()
 }
 
@@ -54,6 +55,7 @@ var _ = Describe("TOMLSerializer", func() {
 		var buf bytes.Buffer
 		enc := toml.NewEncoder(&buf)
 		Expect(enc.Encode(input)).To(Succeed())
+
 		return buf.Bytes()
 	}
 

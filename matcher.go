@@ -13,7 +13,7 @@ import (
 
 type Option func(*Matcher)
 
-// WithDescription adds an optional description to the gold file, allowing multiple gold files per test
+// WithDescription adds an optional description to the gold file, allowing multiple gold files per test.
 func WithDescription(description string) Option {
 	return func(matcher *Matcher) {
 		if s, ok := matcher.Storage.(*SuiteStorage); ok {
@@ -24,6 +24,7 @@ func WithDescription(description string) Option {
 
 func getUpdateFile() bool {
 	update, _ := strconv.ParseBool(os.Getenv("UPDATE_GOLDEN"))
+
 	return update
 }
 
@@ -42,6 +43,7 @@ func Match(options ...Option) *Matcher {
 	for _, option := range options {
 		option(m)
 	}
+
 	return m
 }
 
@@ -57,13 +59,11 @@ type Matcher struct {
 
 func (m *Matcher) Match(actual interface{}) (bool, error) {
 	actualContent, err := m.getActualContent(actual)
-
 	if err != nil {
 		return false, fmt.Errorf("failed to get actual content: %w", err)
 	}
 
 	expected, err := m.getExpectedContent()
-
 	if err != nil {
 		if !errors.Is(err, afero.ErrFileNotFound) {
 			return false, fmt.Errorf("failed to get expected content: %w", err)
@@ -81,13 +81,11 @@ func (m *Matcher) Match(actual interface{}) (bool, error) {
 
 func (m *Matcher) getMessage(actual interface{}, message string) string {
 	expectedContent, err := m.getExpectedContent()
-
 	if err != nil {
 		panic(err)
 	}
 
 	actualContent, err := m.getActualContent(actual)
-
 	if err != nil {
 		panic(err)
 	}
@@ -102,19 +100,23 @@ func (m *Matcher) getExpectedContent() ([]byte, error) {
 		return nil, afero.ErrFileNotFound
 	}
 
-	return m.Storage.Read()
+	data, err := m.Storage.Read()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	return data, nil
 }
 
 func (m *Matcher) getActualContent(actual interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	transformed, err := m.Transformer.Transform(actual)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("transform error: %w", err)
 	}
 
 	if err := m.Serializer.Serialize(&buf, transformed); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("serialize error: %w", err)
 	}
 
 	return buf.Bytes(), nil

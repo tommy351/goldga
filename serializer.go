@@ -2,6 +2,7 @@ package goldga
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/BurntSushi/toml"
@@ -26,6 +27,7 @@ type DumpSerializer struct {
 
 func (d *DumpSerializer) Serialize(w io.Writer, input interface{}) error {
 	d.Config.Fdump(w, input)
+
 	return nil
 }
 
@@ -43,7 +45,11 @@ func (y *YAMLSerializer) Serialize(w io.Writer, input interface{}) error {
 	enc := yaml.NewEncoder(w)
 	defer enc.Close()
 
-	return enc.Encode(input)
+	if err := enc.Encode(input); err != nil {
+		return fmt.Errorf("yaml encode error: %w", err)
+	}
+
+	return nil
 }
 
 type JSONSerializer struct {
@@ -56,7 +62,12 @@ func (j *JSONSerializer) Serialize(w io.Writer, input interface{}) error {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(j.EscapeHTML)
 	enc.SetIndent(j.IndentPrefix, j.Indent)
-	return enc.Encode(input)
+
+	if err := enc.Encode(input); err != nil {
+		return fmt.Errorf("json encode error: %w", err)
+	}
+
+	return nil
 }
 
 type TOMLSerializer struct {
@@ -66,5 +77,10 @@ type TOMLSerializer struct {
 func (t *TOMLSerializer) Serialize(w io.Writer, input interface{}) error {
 	enc := toml.NewEncoder(w)
 	enc.Indent = t.Indent
-	return enc.Encode(input)
+
+	if err := enc.Encode(input); err != nil {
+		return fmt.Errorf("toml encode error: %w", err)
+	}
+
+	return nil
 }

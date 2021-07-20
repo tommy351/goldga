@@ -190,6 +190,7 @@ var _ = Describe("SuiteStorage", func() {
 		readFile := func() string {
 			content, err := afero.ReadFile(fs, storage.Path)
 			Expect(err).NotTo(HaveOccurred())
+
 			return string(content)
 		}
 

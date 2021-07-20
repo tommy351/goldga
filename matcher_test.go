@@ -74,6 +74,7 @@ var _ = Describe("Matcher", func() {
 	getFileContent := func() []byte {
 		var buf bytes.Buffer
 		Expect(matcher.Serializer.Serialize(&buf, actual)).To(Succeed())
+
 		return buf.Bytes()
 	}
 
