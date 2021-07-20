@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/andreyvit/diff"
-	"github.com/logrusorgru/aurora"
+	aurora "github.com/logrusorgru/aurora/v3"
 	isatty "github.com/mattn/go-isatty"
 )
 
