@@ -11,13 +11,24 @@ import (
 	"github.com/spf13/afero"
 )
 
+type Option func(*Matcher)
+
+// WithDescription adds an optional description to the gold file, allowing multiple gold files per test
+func WithDescription(description string) Option {
+	return func(matcher *Matcher) {
+		if s, ok := matcher.Storage.(*SuiteStorage); ok {
+			s.Name = fmt.Sprintf("%s (%s)", s.Name, description)
+		}
+	}
+}
+
 func getUpdateFile() bool {
 	update, _ := strconv.ParseBool(os.Getenv("UPDATE_GOLDEN"))
 	return update
 }
 
-func Match() *Matcher {
-	return &Matcher{
+func Match(options ...Option) *Matcher {
+	m := &Matcher{
 		Serializer:  DefaultSerializer,
 		Transformer: DefaultTransformer,
 		Storage: &SuiteStorage{
@@ -28,6 +39,10 @@ func Match() *Matcher {
 		Differ:     DefaultDiffer,
 		UpdateFile: getUpdateFile(),
 	}
+	for _, option := range options {
+		option(m)
+	}
+	return m
 }
 
 var _ types.GomegaMatcher = (*Matcher)(nil)
