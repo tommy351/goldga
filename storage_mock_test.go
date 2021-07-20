@@ -5,34 +5,35 @@
 package goldga
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockStorage is a mock of Storage interface
+// MockStorage is a mock of Storage interface.
 type MockStorage struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageMockRecorder
 }
 
-// MockStorageMockRecorder is the mock recorder for MockStorage
+// MockStorageMockRecorder is the mock recorder for MockStorage.
 type MockStorageMockRecorder struct {
 	mock *MockStorage
 }
 
-// NewMockStorage creates a new mock instance
+// NewMockStorage creates a new mock instance.
 func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
 	mock := &MockStorage{ctrl: ctrl}
 	mock.recorder = &MockStorageMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 	return m.recorder
 }
 
-// Read mocks base method
+// Read mocks base method.
 func (m *MockStorage) Read() ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read")
@@ -41,13 +42,13 @@ func (m *MockStorage) Read() ([]byte, error) {
 	return ret0, ret1
 }
 
-// Read indicates an expected call of Read
+// Read indicates an expected call of Read.
 func (mr *MockStorageMockRecorder) Read() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockStorage)(nil).Read))
 }
 
-// Write mocks base method
+// Write mocks base method.
 func (m *MockStorage) Write(data []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Write", data)
@@ -55,7 +56,7 @@ func (m *MockStorage) Write(data []byte) error {
 	return ret0
 }
 
-// Write indicates an expected call of Write
+// Write indicates an expected call of Write.
 func (mr *MockStorageMockRecorder) Write(data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockStorage)(nil).Write), data)
