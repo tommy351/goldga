@@ -13,12 +13,40 @@ import (
 
 type Option func(*Matcher)
 
-// WithDescription adds an optional description to the gold file, allowing multiple gold files per test.
+// WithDescription adds an optional description to the golden file, allowing multiple gold files per test.
 func WithDescription(description string) Option {
 	return func(matcher *Matcher) {
 		if s, ok := matcher.Storage.(*SuiteStorage); ok {
 			s.Name = fmt.Sprintf("%s (%s)", s.Name, description)
 		}
+	}
+}
+
+// WithSerializer overrides the default serializer.
+func WithSerializer(serializer Serializer) Option {
+	return func(matcher *Matcher) {
+		matcher.Serializer = serializer
+	}
+}
+
+// WithTransformer overrides the default transformer.
+func WithTransformer(transformer Transformer) Option {
+	return func(matcher *Matcher) {
+		matcher.Transformer = transformer
+	}
+}
+
+// WithStorage overrides the default storage.
+func WithStorage(storage Storage) Option {
+	return func(matcher *Matcher) {
+		matcher.Storage = storage
+	}
+}
+
+// WithDiffer overrides the default differ.
+func WithDiffer(differ Differ) Option {
+	return func(matcher *Matcher) {
+		matcher.Differ = differ
 	}
 }
 

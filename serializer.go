@@ -84,3 +84,38 @@ func (t *TOMLSerializer) Serialize(w io.Writer, input interface{}) error {
 
 	return nil
 }
+
+type StringSerializer struct {
+	FallbackSerializer Serializer
+}
+
+func (s *StringSerializer) Serialize(w io.Writer, input interface{}) error {
+	var buf []byte
+
+	switch input := input.(type) {
+	case string:
+		buf = []byte(input)
+	case []byte:
+		buf = input
+	case fmt.Stringer:
+		buf = []byte(input.String())
+	default:
+		fallback := s.FallbackSerializer
+
+		if fallback == nil {
+			fallback = DefaultSerializer
+		}
+
+		if err := fallback.Serialize(w, input); err != nil {
+			return fmt.Errorf("fallback serialize error: %w", err)
+		}
+
+		return nil
+	}
+
+	if _, err := w.Write(buf); err != nil {
+		return fmt.Errorf("write error: %w", err)
+	}
+
+	return nil
+}
