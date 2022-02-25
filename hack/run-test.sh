@@ -2,8 +2,5 @@
 
 set -euo pipefail
 
-export JUNIT_OUTPUT="${PWD}/reports/junit"
-
-GO111MODULE="on" go get github.com/onsi/ginkgo/ginkgo
-ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress $@
+go run github.com/onsi/ginkgo/v2/ginkgo -r --randomize-all --randomize-suites --fail-on-pending --cover --trace --race --progress --junit-report=junit.xml $@
 $(dirname "${BASH_SOURCE[0]}")/collect-coverage.sh

@@ -31,7 +31,7 @@ jobs:
       - go_get
       - run: hack/run-test.sh
       - store_test_results:
-          path: reports/junit
+          path: junit.xml
       - run: bash <(curl -s https://codecov.io/bash)
 
 workflows:

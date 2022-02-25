@@ -104,7 +104,7 @@ func (s *SuiteStorage) getSuiteData() (*suiteData, error) {
 
 	data := newSuiteData()
 
-	if _, err := toml.DecodeReader(file, &data); err != nil {
+	if _, err := toml.NewDecoder(file).Decode(&data); err != nil {
 		return nil, fmt.Errorf("toml decode error: %w", err)
 	}
 

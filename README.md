@@ -14,7 +14,7 @@ go get github.com/tommy351/goldga
 
 ```go
 import (
-  . "github.com/onsi/ginkgo"
+  . "github.com/onsi/ginkgo/v2"
   . "github.com/onsi/gomega"
   "github.com/tommy351/goldga"
 )

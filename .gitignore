@@ -3,3 +3,5 @@
 *.coverprofile
 /coverage.txt
 /reports/
+/coverprofile.out
+/junit.xml
