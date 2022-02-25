@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  codecov: codecov/codecov@3.2.2
+
 commands:
   go_get:
     steps:
@@ -32,7 +35,8 @@ jobs:
       - run: hack/run-test.sh
       - store_test_results:
           path: junit.xml
-      - run: bash <(curl -s https://codecov.io/bash)
+      - codecov/upload:
+          file: coverprofile.out
 
 workflows:
   version: 2
