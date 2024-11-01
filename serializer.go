@@ -35,6 +35,8 @@ func newDefaultDumpConfig() *spew.ConfigState {
 	conf := spew.NewDefaultConfig()
 	conf.SortKeys = true
 	conf.DisableCapacities = true
+	conf.DisablePointerAddresses = true
+	conf.DisablePointerMethods = true
 
 	return conf
 }
